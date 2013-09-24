@@ -77,7 +77,7 @@ class UnsignedTx(object):
 
         return class_(version, unsigned_txs_out, new_txs_out, lock_time)
 
-    def sign(self, solver, hash_type=SIGHASH_ALL):
+    def sign(self, solver, hash_type=SIGHASH_ALL, TxClass=Tx):
         """Sign a standard transaction.
         solver:
             A function solver(tx_out_script, signature_hash, signature_type)
@@ -87,7 +87,7 @@ class UnsignedTx(object):
             (which has a __call__ method declared)."""
 
         blank_txs_in = [TxIn(unsigned_tx_out.previous_hash, unsigned_tx_out.previous_index) for unsigned_tx_out_idx, unsigned_tx_out in enumerate(self.unsigned_txs_out)]
-        tx = Tx(self.version, blank_txs_in, self.new_txs_out, self.lock_time)
+        tx = TxClass(self.version, blank_txs_in, self.new_txs_out, self.lock_time)
 
         new_txs_in = []
         for unsigned_tx_out_idx, unsigned_tx_out in enumerate(self.unsigned_txs_out):
