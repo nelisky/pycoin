@@ -4,7 +4,11 @@ import binascii
 import io
 import json
 import sys
-import urllib.request
+try:
+    import urllib.request
+except:
+    import urllib
+    urllib.request = urllib
 
 from pycoin.tx.Tx import Tx, TxIn, TxOut
 from pycoin.tx.script import tools
