@@ -65,11 +65,11 @@ class BlockHeader(object):
         """Calculate the hash for the block header. Note that this has the bytes
         in the opposite order from how the header is usually displayed (so the
         long string of 00 bytes is at the end, not the beginning)."""
-        if not hasattr(self, "__hash"):
+        if not hasattr(self, "_hash"):
             s = io.BytesIO()
             self.stream_header(s)
-            self.__hash = double_sha256(s.getvalue())
-        return self.__hash
+            self._hash = double_sha256(s.getvalue())
+        return self._hash
 
     def stream_header(self, f):
         """Stream the block header in the standard way to the file-like object f."""
