@@ -228,14 +228,14 @@ def public_pair_to_hash160_sec(public_pair, compressed=True):
 def hash160_sec_to_bitcoin_address(hash160_sec, is_test=False, addrversion=b'\0'):
     """Convert the hash160 of a sec version of a public_pair to a Bitcoin address."""
     if addrversion == b'\0':
-        addrversion = public_byte_prefix(is_test) 
+        addrversion = public_byte_prefix(is_test)
     return b2a_hashed_base58(addrversion + hash160_sec)
 
 def bitcoin_address_to_hash160_sec(bitcoin_address, is_test=False, addrversion=b'\0'):
     """Convert a Bitcoin address back to the hash160_sec format of the public key.
     Since we only know the hash of the public key, we can't get the full public key back."""
     if addrversion == b'\0':
-        addrversion = public_byte_prefix(is_test) 
+        addrversion = public_byte_prefix(is_test)
     blob = a2b_hashed_base58(bitcoin_address)
     if len(blob) != 21:
         raise EncodingError("incorrect binary length (%d) for Bitcoin address %s" % (len(blob), bitcoin_address))
@@ -245,7 +245,7 @@ def bitcoin_address_to_hash160_sec(bitcoin_address, is_test=False, addrversion=b
 
 def public_pair_to_bitcoin_address(public_pair, compressed=True, is_test=False, addrversion=b'\0'):
     """Convert a public_pair (corresponding to a public key) to a Bitcoin address."""
-    return hash160_sec_to_bitcoin_address(public_pair_to_hash160_sec(public_pair, compressed=compressed), is_test=is_test, addrversion=b'\0')
+    return hash160_sec_to_bitcoin_address(public_pair_to_hash160_sec(public_pair, compressed=compressed), is_test=is_test, addrversion=addrversion)
 
 def is_valid_bitcoin_address(bitcoin_address):
     """Return True if and only if bitcoin_address is valid."""
