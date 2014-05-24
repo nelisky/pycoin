@@ -9,6 +9,7 @@ from pycoin.encoding import hash160_sec_to_bitcoin_address, h2b, public_pair_to_
 from pycoin.serialize.bitcoin_streamer import parse_struct
 from pycoin.encoding import wif_to_secret_exponent
 from pycoin.tx.script.solvers import SecretExponentSolver
+from pycoin.ecdsa import public_pair_for_secret_exponent, generator_secp256k1
 
 from jsonrpc.proxy import ServiceProxy
 from decimal import Decimal
@@ -362,7 +363,7 @@ class ProxyTx (Tx):
         tx = StringIO()
         self.stream(tx)
         return b2h(tx.getvalue())
-        
+
     def simple_validate (self, proxy):
         txcache = {}
         def get_txout (txhash, vout):
@@ -372,6 +373,18 @@ class ProxyTx (Tx):
             return txcache[txhash].txs_out[vout]
         return self.validate(get_txout)
 
+class OfflineAwareSolver (SecretExponentSolver):
+    def __init__(self, secret_exponents):
+        super(OfflineAwareSolver, self).__init__(secret_exponents)
+        STANDARD_SCRIPT_OUT = "OP_DUP OP_HASH160 %s OP_EQUALVERIFY OP_CHECKSIG"
+        self.script_hash160 = []
+        for se in secret_exponents:
+            pp = public_pair_for_secret_exponent(generator_secp256k1, se)
+            h160sec = public_pair_to_hash160_sec(pp, False)
+            script_text = STANDARD_SCRIPT_OUT % b2h(h160sec)
+            print script_text
+            self.script_hash160.append(compile(script_text))
+
 class ProxyUnsignedTx (UnsignedTx):
     @classmethod
     def from_hex (klass, proxy, hexv):
@@ -379,8 +392,12 @@ class ProxyUnsignedTx (UnsignedTx):
         tx = ProxyTx.parse(StringIO(binascii.unhexlify(hexv)))
         uto = []
         for txi in tx.txs_in:
-            thistx = proxy.getTx(b2h_rev(txi.previous_hash), shallow_txins=True)
-            uto.append(UnsignedTxOut(txi.previous_hash, txi.previous_index, None, thistx.txs_out[txi.previous_index].script))
+            if proxy is None:
+                pscript = ''
+            else:
+                thistx = proxy.getTx(b2h_rev(txi.previous_hash), shallow_txins=True)
+                pscript = thistx.txs_out[txi.previous_index].script
+            uto.append(UnsignedTxOut(txi.previous_hash, txi.previous_index, None, pscript))
 
         uti = []
         for txo in tx.txs_out:
@@ -391,7 +408,10 @@ class ProxyUnsignedTx (UnsignedTx):
         return klass(tx.version, uto, uti, tx.lock_time)
 
     def simple_sign (self, skeys):
-        solver = SecretExponentSolver([wif_to_secret_exponent(x) for x in skeys])
+        solver = OfflineAwareSolver([wif_to_secret_exponent(x) for x in skeys])
+        for idx, tx in enumerate(self.unsigned_txs_out):
+            if tx.script == '':
+                tx.script = solver.script_hash160[idx]
         return self.sign(solver, TxClass=ProxyTx)
 
     def txs_in_addresses (self, proxy):
